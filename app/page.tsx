@@ -6,7 +6,7 @@ export default function Home() {
       {/* Hero Section */}
       <div style={{ marginBottom: '4rem' }}>
         <h1 style={{ fontSize: '3.75rem', fontWeight: 300, marginBottom: '1rem' }}>
-          [Your Name]
+          Adam Mhatre
         </h1>
         <p style={{ fontSize: '1.5rem', color: '#4b5563', marginBottom: '2rem', fontWeight: 300 }}>
           Physics → Fusion → AI-Native Optical Design
@@ -14,6 +14,11 @@ export default function Home() {
 
         {/* Social Links */}
         <div style={{ display: 'flex', gap: '1.5rem', fontSize: '1.125rem' }}>
+          <a
+            href="mailto:adam1mhatre@gmail.com"
+          >
+            Email
+          </a>
           <a
             href="https://linkedin.com/in/[your-profile]"
             target="_blank"

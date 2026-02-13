@@ -3,7 +3,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "[Your Name] - Personal Website",
+  title: "Adam Mhatre - Personal Website",
   description: "Physics, AI, and startups",
 };
 

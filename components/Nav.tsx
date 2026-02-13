@@ -6,7 +6,7 @@ export default function Nav() {
       <div style={{ maxWidth: '1536px', margin: '0 auto', padding: '1.5rem 2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ fontSize: '1.25rem', textDecoration: 'none' }}>
-            [Your Name]
+            Adam Mhatre
           </Link>
           <div style={{ display: 'flex', gap: '2rem' }}>
             <Link href="/experience" style={{ textDecoration: 'none' }}>
