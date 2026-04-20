@@ -60,6 +60,7 @@ const personJsonLd = {
   "@type": "Person",
   name: SITE_NAME,
   url: SITE_URL,
+  description: SITE_DESCRIPTION,
   jobTitle: "Cofounder & CTO",
   worksFor: {
     "@type": "Organization",
