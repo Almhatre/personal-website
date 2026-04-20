@@ -292,6 +292,7 @@ sup.fn {
   color: var(--red);
   cursor: pointer;
   padding: 0 2px;
+  margin-left: 3px;
   border-bottom: 1px dashed var(--red-soft);
 }
 sup.fn:hover {
