@@ -1,52 +1,26 @@
-import Link from 'next/link';
+import { NotebookRoot } from "@/components/Notebook";
+import Masthead from "@/content/masthead.mdx";
+import Ch00 from "@/content/ch00-prologue.mdx";
+import Ch01 from "@/content/ch01-black-holes.mdx";
+import Ch02 from "@/content/ch02-fusion.mdx";
+import Ch03 from "@/content/ch03-body.mdx";
+import Ch04 from "@/content/ch04-company.mdx";
+import Ch05 from "@/content/ch05-cv.mdx";
+import Ch06 from "@/content/ch06-writing.mdx";
+import SignOff from "@/content/signoff.mdx";
 
 export default function Home() {
   return (
-    <div style={{ maxWidth: '1024px', margin: '0 auto', padding: '6rem 2rem' }}>
-      {/* Hero Section */}
-      <div style={{ marginBottom: '4rem' }}>
-        <h1 style={{ fontSize: '3.75rem', fontWeight: 300, marginBottom: '1rem' }}>
-          Adam Mhatre
-        </h1>
-        <p style={{ fontSize: '1.5rem', color: '#4b5563', marginBottom: '2rem', fontWeight: 300 }}>
-          Physics → Fusion → AI-Native Optical Design
-        </p>
-
-        {/* Social Links */}
-        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '1.125rem' }}>
-          <a
-            href="mailto:adam1mhatre@gmail.com"
-          >
-            Email
-          </a>
-          <a
-            href="https://linkedin.com/in/[your-profile]"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            LinkedIn
-          </a>
-          <a
-            href="https://twitter.com/[your-handle]"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Twitter
-          </a>
-        </div>
-      </div>
-
-      {/* Brief Overview */}
-      <div style={{ maxWidth: '65ch' }}>
-        <p>
-          I studied physics at Stanford, conducted astrophysics research on black hole clustering,
-          worked on nuclear fusion at Avalanche Energy, and am currently co-founder and CTO of a startup
-          building AI-native optical design tools.
-        </p>
-        <p>
-          <Link href="/experience">See my full experience →</Link>
-        </p>
-      </div>
-    </div>
+    <NotebookRoot>
+      <Masthead />
+      <Ch00 />
+      <Ch01 />
+      <Ch02 />
+      <Ch03 />
+      <Ch04 />
+      <Ch05 />
+      <Ch06 />
+      <SignOff />
+    </NotebookRoot>
   );
 }

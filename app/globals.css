@@ -1,59 +1,504 @@
-@import "tailwindcss";
+:root {
+  --paper: #f1ebdd;
+  --paper-deep: #e9e1cf;
+  --ink: #1f1a14;
+  --ink-2: #3a342a;
+  --ink-dim: #6e6554;
+  --ink-faint: #9a9077;
+  --rule: #d7cdb6;
+  --red: #a3321f; /* reader's pen */
+  --red-soft: #c7694e;
 
-@theme {
-  --font-family-serif: Georgia, Cambria, 'Times New Roman', serif;
-  --font-family-sans: system-ui, -apple-system, sans-serif;
+  --serif: var(--font-garamond), "Iowan Old Style", Georgia, serif;
+  --display: var(--font-fraunces), var(--font-garamond), Georgia, serif;
+  --meta: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --math: var(--font-stix), var(--font-garamond), Georgia, serif;
 
-  --color-background: #ffffff;
-  --color-foreground: #000000;
+  --bodyW: 560px;
+  --marginW: 260px;
+  --gutter: 56px;
 }
 
+* {
+  box-sizing: border-box;
+}
+html,
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-family-serif);
-  font-feature-settings: "rlig" 1, "calt" 1;
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+body {
+  font-family: var(--serif);
+  font-size: 19.5px;
+  line-height: 1.58;
+  letter-spacing: 0.002em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Academic typography */
-h1 {
-  font-size: 2.25rem;
-  font-family: var(--font-family-serif);
-  font-weight: 300;
-  letter-spacing: -0.025em;
-  margin-bottom: 1.5rem;
+body.paper-warm {
+  --paper: #f1ebdd;
+  --paper-deep: #e9e1cf;
+  --rule: #d7cdb6;
+}
+body.paper-bone {
+  --paper: #efeadf;
+  --paper-deep: #e7e1d2;
+  --rule: #d3cab6;
+}
+body.paper-white {
+  --paper: #f6f3ec;
+  --paper-deep: #ede9de;
+  --rule: #dbd3c2;
+}
+body.paper-grey {
+  --paper: #e8e4da;
+  --paper-deep: #dfdacd;
+  --rule: #c9c1ac;
+  --ink: #1a1813;
 }
 
-h2 {
-  font-size: 1.875rem;
-  font-family: var(--font-family-serif);
-  font-weight: 300;
-  letter-spacing: -0.025em;
-  margin-bottom: 1rem;
-  margin-top: 2rem;
-}
-
-h3 {
-  font-size: 1.5rem;
-  font-family: var(--font-family-serif);
-  font-weight: 300;
-  margin-bottom: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-p {
-  font-size: 1.125rem;
-  line-height: 1.75;
-  margin-bottom: 1rem;
+/* subtle paper texture, done with layered noise-like gradients (no images) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(1200px 800px at 10% 0%, rgba(0, 0, 0, 0.035), transparent 60%),
+    radial-gradient(900px 700px at 90% 100%, rgba(0, 0, 0, 0.04), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.012) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.01) 0 1px, transparent 1px 5px);
+  mix-blend-mode: multiply;
 }
 
 a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  transition: color 0.2s;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink-faint);
+}
+a:hover {
+  color: var(--red);
+  border-bottom-color: var(--red);
+}
+em {
+  font-style: italic;
+}
+.small-caps {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
 }
 
-a:hover {
-  color: #4b5563;
+/* page frame */
+.sheet {
+  max-width: calc(var(--bodyW) + var(--marginW) + var(--gutter) + 80px);
+  margin: 0 auto;
+  padding: 80px 40px 140px;
+  position: relative;
+  z-index: 1;
+}
+body.width-wide {
+  --bodyW: 640px;
+  --marginW: 300px;
+}
+body.width-narrow {
+  --bodyW: 500px;
+  --marginW: 220px;
+}
+
+/* masthead */
+.mast {
+  display: grid;
+  grid-template-columns: var(--marginW) var(--gutter) var(--bodyW);
+  margin-bottom: 80px;
+}
+.mast .left {
+  font-family: var(--meta);
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-top: 8px;
+}
+.mast .left .rule {
+  display: block;
+  height: 1px;
+  background: var(--ink);
+  margin-bottom: 10px;
+  width: 40px;
+}
+.mast .right {
+  grid-column: 3;
+}
+.mast h1 {
+  font-family: var(--display);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 54px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.mast h1 .amp {
+  color: var(--red);
+  font-style: italic;
+}
+.mast .byline {
+  margin-top: 14px;
+  font-family: var(--meta);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+}
+.mast .byline b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* body layout — margin notes on the left, body text on the right */
+.chapter {
+  display: grid;
+  grid-template-columns: var(--marginW) var(--gutter) var(--bodyW);
+  margin-bottom: 90px;
+  position: relative;
+}
+.chapter .margin {
+  grid-column: 1;
+  padding-top: 8px;
+  position: relative;
+}
+.chapter .body {
+  grid-column: 3;
+  position: relative;
+}
+
+/* chapter header */
+.chap-num {
+  font-family: var(--meta);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 12px;
+}
+.chap-num::before {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: var(--ink-dim);
+  vertical-align: middle;
+  margin-right: 10px;
+  transform: translateY(-3px);
+}
+.chap-title {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 26px;
+  text-wrap: balance;
+}
+.chap-title em {
+  font-style: italic;
+  color: var(--ink-2);
+}
+.chap-subtitle {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-dim);
+  font-size: 18px;
+  margin: -14px 0 26px;
+}
+
+/* body text */
+.body p {
+  margin: 0 0 1em;
+  text-align: justify;
+  hyphens: auto;
+}
+.body p + p {
+  text-indent: 1.4em;
+}
+.body p.no-indent + p,
+.body p:first-of-type {
+  text-indent: 0;
+}
+.body p.lede {
+  font-size: 22px;
+  line-height: 1.5;
+}
+body.drops .body .chap-body > p:first-of-type::first-letter {
+  font-family: var(--display);
+  font-weight: 300;
+  float: left;
+  font-size: 74px;
+  line-height: 0.82;
+  padding: 10px 10px 0 0;
+  color: var(--ink);
+  font-style: italic;
+}
+
+/* margin note — appears next to a specific paragraph */
+.mnote {
+  font-family: var(--meta);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+  padding: 0 0 0 14px;
+  border-left: 1px solid var(--rule);
+  margin-bottom: 22px;
+  position: relative;
+}
+.mnote b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.mnote .tag {
+  display: inline-block;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 4px;
+  margin-right: 0.5em;
+}
+.mnote.pen {
+  font-family: var(--font-fraunces), serif;
+  font-style: italic;
+  color: var(--red);
+  border-left-color: var(--red-soft);
+  font-size: 15px;
+}
+body.no-notes .margin {
+  display: none;
+}
+body.no-notes .chapter {
+  grid-template-columns: 0 var(--gutter) var(--bodyW);
+}
+body.no-notes .mast {
+  grid-template-columns: 0 var(--gutter) var(--bodyW);
+}
+
+/* inline footnote markers */
+sup.fn {
+  font-family: var(--meta);
+  font-size: 10.5px;
+  color: var(--red);
+  cursor: pointer;
+  padding: 0 2px;
+  border-bottom: 1px dashed var(--red-soft);
+}
+sup.fn:hover {
+  background: rgba(163, 50, 31, 0.08);
+}
+
+/* footnote popover */
+.fn-pop {
+  position: absolute;
+  background: var(--paper-deep);
+  border: 1px solid var(--ink);
+  padding: 10px 12px;
+  max-width: 320px;
+  font-family: var(--meta);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  z-index: 40;
+  box-shadow: 0 6px 20px rgba(40, 30, 10, 0.15);
+}
+
+/* math-ish inline */
+.eq {
+  font-family: var(--math);
+  font-style: italic;
+}
+.eq .op {
+  font-style: normal;
+}
+
+/* block equation */
+.eqblock {
+  text-align: center;
+  font-family: var(--math);
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 22px 0 26px;
+  color: var(--ink);
+}
+.eqblock .num {
+  float: right;
+  font-family: var(--meta);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 8px;
+  font-style: normal;
+}
+
+/* pullquote */
+.pull,
+.body p.pull {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 28px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-align: left !important;
+  margin: 28px 0 28px;
+  padding-left: 0;
+  text-wrap: balance;
+  text-indent: 0 !important;
+  hyphens: none;
+}
+
+/* CV as a compact list */
+.cv-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 20px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+  font-family: var(--meta);
+  font-size: 14px;
+  color: var(--ink);
+}
+.cv-row:first-child {
+  border-top: 0;
+}
+.cv-row .when {
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.cv-row .what b {
+  font-weight: 500;
+}
+.cv-row .what .role {
+  color: var(--ink-dim);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+}
+
+/* inline pendulum figure */
+.fig {
+  margin: 28px 0 32px;
+  text-align: center;
+}
+.fig svg {
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  display: block;
+  margin: 0 auto;
+  border-radius: 2px;
+  touch-action: none;
+}
+.fig .caption {
+  font-family: var(--meta);
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+.fig .caption b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* contact row */
+.sign-off {
+  display: grid;
+  grid-template-columns: var(--marginW) var(--gutter) var(--bodyW);
+  border-top: 1px solid var(--ink);
+  padding-top: 24px;
+  margin-top: 60px;
+}
+.sign-off .left {
+  font-family: var(--meta);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.sign-off .right {
+  grid-column: 3;
+}
+.sign-off .right h3 {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 28px;
+  margin: 0 0 18px;
+}
+.sign-off .links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+  font-family: var(--meta);
+  font-size: 14px;
+  margin-top: 8px;
+}
+.sign-off .links a {
+  display: inline-block;
+  border-bottom: 1px solid var(--rule);
+  padding: 4px 0;
+}
+.sign-off .colophon {
+  margin-top: 28px;
+  font-family: var(--meta);
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.55;
+  max-width: 50ch;
+}
+
+/* end-of-chapter flourish */
+.flourish {
+  text-align: center;
+  color: var(--ink-faint);
+  letter-spacing: 0.4em;
+  margin: 36px 0 8px;
+  font-size: 14px;
+}
+
+/* mobile */
+@media (max-width: 900px) {
+  .mast,
+  .chapter,
+  .sign-off {
+    grid-template-columns: 1fr;
+  }
+  .mast .right,
+  .chapter .body,
+  .sign-off .right {
+    grid-column: 1;
+  }
+  .mast .left,
+  .chapter .margin,
+  .sign-off .left {
+    margin-bottom: 18px;
+  }
+  .chapter .margin {
+    order: 2;
+    padding-top: 20px;
+  }
+  .chapter .body {
+    order: 1;
+  }
+  .sheet {
+    padding: 40px 22px 100px;
+  }
+  .mast h1 {
+    font-size: 40px;
+  }
+  body {
+    font-size: 18px;
+  }
 }
