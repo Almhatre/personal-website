@@ -1,26 +1,22 @@
-import { NotebookRoot } from "@/components/Notebook";
+import { Page } from "@/components/Notebook";
 import Masthead from "@/content/masthead.mdx";
-import Ch00 from "@/content/ch00-prologue.mdx";
-import Ch01 from "@/content/ch01-black-holes.mdx";
-import Ch02 from "@/content/ch02-fusion.mdx";
-import Ch03 from "@/content/ch03-body.mdx";
-import Ch04 from "@/content/ch04-company.mdx";
-import Ch05 from "@/content/ch05-cv.mdx";
-import Ch06 from "@/content/ch06-writing.mdx";
-import SignOff from "@/content/signoff.mdx";
+import Intro from "@/content/intro.mdx";
+import Work from "@/content/work.mdx";
+import Writing from "@/content/writing.mdx";
+import Background from "@/content/background.mdx";
+import Elsewhere from "@/content/elsewhere.mdx";
+import Colophon from "@/content/colophon.mdx";
 
 export default function Home() {
   return (
-    <NotebookRoot>
+    <Page>
       <Masthead />
-      <Ch00 />
-      <Ch01 />
-      <Ch02 />
-      <Ch03 />
-      <Ch04 />
-      <Ch05 />
-      <Ch06 />
-      <SignOff />
-    </NotebookRoot>
+      <Intro />
+      <Work />
+      <Writing />
+      <Background />
+      <Elsewhere />
+      <Colophon />
+    </Page>
   );
 }

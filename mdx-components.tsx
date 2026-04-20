@@ -1,35 +1,29 @@
 import type { MDXComponents } from "mdx/types";
 import {
-  Body,
-  CVRow,
-  Chapter,
+  Colophon,
+  Contact,
+  Desc,
+  Entry,
   Eq,
-  Flourish,
-  Footnote,
-  Lede,
-  Margin,
+  Intro,
+  Item,
+  List,
   Masthead,
-  Pen,
-  Pull,
-  SignOff,
+  Section,
 } from "./components/Notebook";
-import { Pendulum } from "./components/Pendulum";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     ...components,
-    Body,
-    CVRow,
-    Chapter,
+    Colophon,
+    Contact,
+    Desc,
+    Entry,
     Eq,
-    Flourish,
-    Footnote,
-    Lede,
-    Margin,
+    Intro,
+    Item,
+    List,
     Masthead,
-    Pen,
-    Pendulum,
-    Pull,
-    SignOff,
+    Section,
   };
 }
