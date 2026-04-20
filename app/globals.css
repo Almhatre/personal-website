@@ -218,6 +218,9 @@ section > h2 {
 .list li:last-child {
   border-bottom: none;
 }
+.list li.no-date {
+  grid-template-columns: 1fr;
+}
 .list .when {
   font-family: var(--meta);
   font-size: 11px;

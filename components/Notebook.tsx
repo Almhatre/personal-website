@@ -118,12 +118,12 @@ export function Item({
   when,
   children,
 }: {
-  when: string;
+  when?: string;
   children: ReactNode;
 }) {
   return (
-    <li>
-      <div className="when">{when}</div>
+    <li className={when ? undefined : "no-date"}>
+      {when ? <div className="when">{when}</div> : null}
       <div className="what">{unwrapParagraphs(children)}</div>
     </li>
   );
