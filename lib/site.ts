@@ -5,7 +5,7 @@
 export const SITE_URL = "https://adammhatre.com";
 export const SITE_NAME = "Adam Mhatre";
 export const SITE_DESCRIPTION =
-  "Adam Mhatre — cofounder and CTO of Photonium. Formerly a physics researcher at Stanford and a computational physicist at a fusion startup.";
+  "Adam Mhatre is the cofounder and CTO of Photonium, building AI tools for optical design. Previously an undergraduate physics researcher at Stanford studying active galactic nuclei, and a computational physicist at a fusion startup.";
 
 // Public profiles / canonical URLs that refer to the same entity.
 // Google uses these to collapse them into one knowledge-graph entry.
