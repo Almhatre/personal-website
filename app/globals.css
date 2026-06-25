@@ -56,30 +56,46 @@ body {
   font-feature-settings: "kern", "liga", "onum";
 }
 
-.page {
-  max-width: var(--measure);
-  margin: 0 auto;
-  padding: 88px 28px 160px;
+/* ---- shell: sticky left rail + content column ---- */
+.shell {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 660px);
+  gap: 72px;
+  justify-content: center;
+  padding: 88px 32px 160px;
+}
+.rail {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+}
+.content {
+  min-width: 0;
 }
 
-/* ---- masthead ---- */
+/* ---- masthead (identity block in the rail) ---- */
 .mast {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--rule);
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 .mast h1 {
-  margin: 0;
+  margin: 0 0 10px;
   font-family: var(--body);
   font-weight: 500;
-  font-size: 24px;
+  font-size: 22px;
+  line-height: 1.2;
   letter-spacing: -0.005em;
 }
+.mast h1 a {
+  color: var(--text);
+  border-bottom: none;
+}
+.mast h1 a:hover {
+  color: var(--link);
+}
 .mast .meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   font-family: var(--meta);
   font-size: 12px;
   color: var(--text-faint);
@@ -87,15 +103,43 @@ body {
 }
 .mast .meta a {
   color: var(--text-dim);
-  text-decoration: none;
+  border-bottom: none;
 }
 .mast .meta a:hover {
   color: var(--link);
 }
-.mast .meta span + span::before {
-  content: "·";
-  margin: 0 8px;
-  color: var(--text-faint);
+
+/* ---- rail nav ---- */
+.rail-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule-soft);
+  font-family: var(--meta);
+  font-size: 13px;
+}
+.rail-nav a {
+  width: fit-content;
+  color: var(--text-dim);
+  border-bottom: none;
+}
+.rail-nav a:hover {
+  color: var(--link);
+}
+.rail-nav a.active {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ---- page title (writing index) ---- */
+.page-title {
+  margin: 0 0 36px;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.005em;
 }
 
 /* ---- intro ---- */
@@ -177,6 +221,27 @@ section > h2 {
 .entry p em {
   font-style: italic;
   color: var(--text);
+}
+.entry ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+.entry li {
+  margin: 0 0 8px;
+  padding-left: 4px;
+  font-size: 17.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.entry li:last-child {
+  margin-bottom: 0;
+}
+.entry li::marker {
+  color: var(--text-faint);
+}
+.entry li em {
+  font-style: italic;
 }
 
 /* ---- equations ---- */
@@ -288,16 +353,146 @@ footer.colophon {
   gap: 20px;
 }
 
-/* ---- small screens ---- */
-@media (max-width: 560px) {
-  .page {
-    padding: 56px 22px 100px;
+/* ---- writing index ---- */
+.list .what-title {
+  font-weight: 500;
+  color: var(--text);
+  border-bottom: none;
+}
+a.what-title:hover {
+  color: var(--link);
+}
+.list .tag {
+  font-family: var(--meta);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  vertical-align: 1px;
+}
+.more-link {
+  display: inline-block;
+  margin-top: 16px;
+  font-family: var(--meta);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  border-bottom: none;
+}
+.more-link:hover {
+  color: var(--link);
+}
+
+/* ---- essay / reader page ---- */
+.essay-head {
+  margin-bottom: 36px;
+}
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-family: var(--meta);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  border-bottom: none;
+}
+.back-link:hover {
+  color: var(--link);
+}
+.essay-head h1 {
+  margin: 0;
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.essay-body p {
+  margin: 0 0 18px;
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.essay-body h2 {
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 21px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  border: none;
+  margin: 40px 0 14px;
+  padding: 0;
+}
+.essay-body em {
+  font-style: italic;
+}
+.essay-body .cite {
+  font-family: var(--meta);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* ---- pdf embed ---- */
+.pdf-embed {
+  margin: 36px 0 0;
+}
+.pdf-embed iframe {
+  width: 100%;
+  height: 82vh;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+}
+.pdf-embed figcaption {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+  font-family: var(--meta);
+  font-size: 12px;
+}
+.pdf-embed figcaption a {
+  color: var(--text-dim);
+  border-bottom: none;
+}
+.pdf-embed figcaption a:hover {
+  color: var(--link);
+}
+
+/* ---- small screens: rail collapses to the top ---- */
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 44px 22px 100px;
+  }
+  .rail {
+    position: static;
+    top: auto;
   }
   .mast {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    margin-bottom: 0;
   }
+  .rail-nav {
+    flex-direction: row;
+    gap: 20px;
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+  .pdf-embed iframe {
+    height: 70vh;
+  }
+}
+
+@media (max-width: 560px) {
   .entry-head {
     flex-direction: column;
     align-items: flex-start;

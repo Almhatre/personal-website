@@ -2,65 +2,24 @@
 
 <Entry id="photonium" title={<>Photonium, <em>cofounder & CTO</em></>}>
 
-Photonium builds AI tools for optical design. Optical engineers spend most of
-their day in Zemax or Code V nudging surface parameters, running merit
-functions, and tolerancing existing designs. A good chunk of that work is
-pattern-matching against an internal library of tricks, and that is the part
-we automate.
-
-Neutral-atom quantum computing, space instruments, lithography, and precision
-measurement are all bottlenecked by optics. If optical design gets
-substantially cheaper, those fields get easier.
+- Built and maintain a production agentic AI system for optical engineering (cameras, LiDAR, semiconductor lithography, medical imaging), enabling engineers to query, analyze, and iterate on complex lens systems through natural language.
+- Developed a native parser for industry-standard optical design files (.zmx), enabling structured retrieval and reasoning over proprietary design libraries without existing open-source tooling.
+- Designed a robust evaluation framework benchmarking performance across aberration diagnosis, optical prescription generation, and design execution stages.
+- Built observability and telemetry layer to detect and surface agent failures in production, enabling rapid prompt iteration and regression tracking.
 
 </Entry>
 
 <Entry title={<>Avalanche Energy, <em>computational physicist</em></>}>
 
-I joined Avalanche for the summer to work on parameter-space exploration of
-their reactor: pushing a simulation through thousands of configurations and
-asking, at each point, what the plasma was doing physically, why, and how
-that informed the next set of values to simulate.
-
-You can't just throw data analysis at it. Most of my time went to individual
-simulations in Paraview: the fields, the particle trajectories, where and
-why losses happened. You reason physically about one regime, then decide
-what to measure and what to run next.
+- Simulated fusion-relevant plasmas using WarpX, a Particle-in-Cell code, to explore various parameters and their effect on the fusion energy gain factor (Q value) value for the Orbitron, an electrostatic fusion reactor.
+- Work included running simulations on AWS GPU clusters, writing analysis scripts, using Paraview (a scientific visualization tool), presenting and summarizing my findings in a detailed write-up.
 
 </Entry>
 
 <Entry title={<>Stanford XOC / KIPAC, <em>undergraduate researcher</em></>}>
 
-Two years of work with an X-ray AGN catalogue under Dr. Meredith Powell. The
-question: look at *where* active galactic nuclei sit, in the sky and in
-redshift, and ask whether their spatial clustering tells us anything about
-how supermassive black holes grew and co-evolved with the galaxies they live
-in. *Where* things are turns out to be almost as informative as *what* they
-are.
-
-We used two complementary probes. The two-point correlation function, the
-workhorse of clustering statistics, gives the excess probability of finding a
-second AGN at a distance *r* from a first one:
-
-<Eq num="1">
-ξ(r) = ⟨ δ(**x**) δ(**x** + **r**) ⟩
-</Eq>
-
-Two-point statistics discard most of the information in a point field, so we
-switched probes: for a given AGN, how far was its *k*-th nearest galaxy
-neighbour? The *k*-nearest-neighbor CDF is sensitive to the full hierarchy of
-*N*-point clustering, not just the two-point piece. It had been used on
-galaxies and galaxy clusters; we were the first to apply it to AGN.
-
-<Eq num="2">
-CDF<sub>k</sub>(r) = P[ N<sub>gal</sub>( &lt; r ) ≥ k ]
-</Eq>
-
-The two probes gave the paper its claims. AGN hosting more massive black
-holes have significantly closer galaxy neighbours than AGN hosting
-less-massive ones, a trend earlier two-point measurements had only hinted at
-around 2σ, and that *k*NN pulled up to 99.98% confidence. And *k*NN turned
-out to be a genuinely complementary probe to the two-point function, seeing
-structure the two-point statistic can't. [First-author paper →](/AGNClusteringPaper.pdf)
+- First-author publication: [“AGN with Massive Black Holes Have Closer Galactic Neighbors,”](/writing/agn-clustering) *Astronomy & Astrophysics* (2025).
+- Pioneered use of kth-Nearest-Neighbors in the context of measuring Active Galactic Nuclei (AGN) clustering, discovering more massive AGN tend to rely in denser cosmic environments with a confidence level of 4.8 SD
 
 </Entry>
 

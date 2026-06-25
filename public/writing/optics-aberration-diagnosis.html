@@ -1,0 +1,1712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engineering an LLM for Optical Diagnosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  :root {
+    --bg: #fdfaf4;
+    --ink: #1c1a17;
+    --ink-soft: #4a4640;
+    --ink-faint: #8a857a;
+    --accent: #a8463a;
+    --rule: #e6e0cd;
+    --placeholder-bg: #f3eedf;
+    --placeholder-ink: #807a68;
+    --quote-bg: #f8f4e8;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    font-size: 18px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  article {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+  }
+
+  header.article-head {
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+  header.article-head h1 {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  header.article-head .deck {
+    font-size: 22px;
+    line-height: 1.4;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-weight: 400;
+    margin: 0 0 20px;
+    letter-spacing: -0.005em;
+  }
+  header.article-head .byline {
+    font-size: 14px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+  header.article-head .byline strong {
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  article p { margin: 0 0 22px; }
+  article p.lede { font-size: 20px; line-height: 1.55; }
+
+  article h2 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 56px 0 22px;
+    color: var(--ink);
+  }
+  article h2::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 2px;
+    background: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  article blockquote {
+    margin: 28px 0;
+    padding: 18px 22px;
+    background: var(--quote-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  article blockquote p { margin: 0 0 14px; }
+  article blockquote p:last-child { margin: 0; }
+
+  article .callout {
+    margin: 32px 0;
+    padding: 4px 0 4px 22px;
+    border-left: 4px solid var(--accent);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  article .callout .eyebrow {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  article .callout p { margin: 0 0 14px; }
+  article .callout p:last-child { margin: 0; }
+
+  article .math {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-style: italic;
+  }
+  article .math sub {
+    font-size: 0.72em;
+    vertical-align: sub;
+    line-height: 0;
+    font-style: normal;
+  }
+
+  article strong { font-weight: 600; color: var(--ink); }
+  article em { font-style: italic; }
+  article p a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(168,70,58,0.3);
+  }
+  article p a:hover {
+    border-bottom-color: var(--accent);
+  }
+
+  /* Placeholder paragraphs — fade out when replaced with real prose */
+  .placeholder {
+    background: var(--placeholder-bg);
+    color: var(--placeholder-ink);
+    padding: 12px 16px;
+    border-radius: 5px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    margin: 12px 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    border-left: 2px solid #d8d0b8;
+  }
+  .placeholder strong {
+    color: var(--placeholder-ink);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .placeholder code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Table of contents */
+  nav.toc {
+    margin: 36px 0 8px;
+    padding: 20px 24px;
+    background: var(--quote-bg);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  nav.toc .toc-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  nav.toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: toc;
+    columns: 2;
+    column-gap: 36px;
+  }
+  nav.toc li {
+    counter-increment: toc;
+    margin: 0 0 7px;
+    break-inside: avoid;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  nav.toc li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-right: 10px;
+  }
+  nav.toc a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  nav.toc a:hover {
+    color: var(--accent);
+    border-bottom-color: rgba(168,70,58,0.3);
+  }
+  @media (max-width: 600px) {
+    nav.toc ol { columns: 1; }
+  }
+
+  /* Figures */
+  figure { margin: 40px 0; }
+  figure iframe {
+    width: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: #fff;
+    display: block;
+    overflow: hidden;
+  }
+  figure figcaption {
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-align: center;
+    margin-top: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Single figure (e.g., schematic) */
+  figure.single { max-width: 100%; margin-left: auto; margin-right: auto; }
+  figure.single iframe { height: 610px; }
+
+  /* Eval case figure */
+  figure.eval-case { max-width: 100%; margin: 36px auto; }
+  figure.eval-case iframe { height: 480px; }
+
+  /* OMM schematic — wide hero, breaks out beyond article column */
+  figure.omm-schematic {
+    width: min(96vw, 1280px);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 48px auto;
+  }
+  figure.omm-schematic iframe { height: 700px; }
+  @media (max-width: 880px) {
+    figure.omm-schematic { width: 100%; left: 0; transform: none; }
+    figure.omm-schematic iframe { height: 940px; }
+  }
+
+  /* Chart pair (matched-pair distributional split) — break out wider */
+  figure.chart-pair {
+    width: min(96vw, 1320px);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 48px auto;
+  }
+  figure.chart-pair iframe { height: 900px; }
+
+  /* Author bio at end of article */
+  hr.bio-rule {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 56px auto 24px;
+    width: 80px;
+  }
+  .author-bio {
+    font-size: 14.5px;
+    font-style: italic;
+    color: var(--ink-faint);
+    text-align: center;
+    margin: 0 auto;
+    line-height: 1.6;
+    max-width: 640px;
+  }
+  .author-bio strong {
+    font-style: normal;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .author-bio a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(168,70,58,0.3);
+    font-style: normal;
+  }
+  .author-bio a:hover {
+    border-bottom-color: var(--accent);
+  }
+  figure.chart-pair figcaption { grid-column: 1 / -1; }
+  @media (max-width: 880px) {
+    figure.chart-pair {
+      width: 100%;
+      grid-template-columns: 1fr;
+      left: 0;
+      transform: none;
+    }
+  }
+</style>
+</head>
+<body>
+<article>
+  <header class="article-head">
+    <h1>From 69% to 97% Accuracy: Engineering an LLM to Diagnose Optical Aberrations</h1>
+    <div class="byline">by <strong>Adam Mhatre</strong> &middot; Photonium &middot; May 2026</div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- TL;DR  (article lead / abstract)                                -->
+  <!-- ============================================================== -->
+
+  <h2 id="tldr">TL;DR</h2>
+
+  <p>Designing an optical system, like a camera lens or a microscope objective, takes months. Most of that time goes into an iteration loop where you look at the current design, figure out what's wrong, change something, and then figure out what's wrong all over again. In an optical system, "what's wrong" means figuring out the reasons why light is coming out of the system blurrier, more spread out, or more distorted than the idealized model would predict. These effects are called <a href="#why-hard">aberrations</a>. Often the hardest part of the iteration loop is figuring out which aberrations are the bottleneck; addressing them is more tractable once the target is clear.</p>
+
+  <p>If an optical engineer were to task Claude Opus 4.7 with this <a href="#methodology">diagnosis procedure</a>, they can expect to get around <a href="#baseline-results"><strong>69% accuracy</strong></a> at identifying which aberrations are the problem. Not only is this accuracy poor, but it's also exacerbated by massive variance, making the output practically useless. To address these weaknesses, I built the <a href="#building-omm">Optical Mental Model</a>, which executes diagnosis with <a href="#omm-results"><strong>97% accuracy</strong></a> and dramatically smaller variance. It works by providing the LLM with the structured understanding of optical design that it doesn't learn from training alone.</p>
+
+  <nav class="toc" aria-label="Table of contents">
+    <p class="toc-label">Table of Contents</p>
+    <ol>
+      <li><a href="#why-hard">Why is aberration diagnosis hard?</a></li>
+      <li><a href="#methodology">Methodology</a></li>
+      <li><a href="#baseline-results">Baseline Claude results</a></li>
+      <li><a href="#failure-aware">Failure-aware Claude results</a></li>
+      <li><a href="#building-omm">Building the Optical Mental Model (OMM)</a></li>
+      <li><a href="#omm-results">Optical Mental Model results</a></li>
+      <li><a href="#omm-enables">How the OMM accelerates optical design</a></li>
+      <li><a href="#conclusion">Conclusion and Future Outlook</a></li>
+    </ol>
+  </nav>
+
+
+  <!-- ============================================================== -->
+  <!-- §1 · WHY ABERRATION DIAGNOSIS IS HARD                          -->
+  <!-- ============================================================== -->
+
+  <h2 id="why-hard">Why is aberration diagnosis hard?</h2>
+
+  <figure class="single">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;What does an aberration look like?&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --bg:#f5f1e4;
+    --card:#fefcf5;
+    --ink:#1f1c18;
+    --ink-soft:#4a4640;
+    --ink-faint:#8e887d;
+    --accent:#a8463a;
+    --accent-deep:#8b3326;
+    --rule:#e3dcc7;
+    --axis:#b5ad97;
+    --ray:#2a2622;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{padding:24px 28px 28px;max-width:1000px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:22px 28px 26px;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+
+  .figmeta{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:14px}
+  .figmeta .rule{flex:1;height:1px;background:var(--rule)}
+
+  h1{font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:-0.012em;color:var(--ink)}
+  .subtitle{font-size:14px;color:var(--ink-soft);margin:0 0 22px}
+
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .panel{border-right:1px dashed var(--rule);padding-right:18px}
+  .panel:last-child{border-right:none;padding-right:0;padding-left:18px}
+
+  .panel-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;gap:10px;align-items:baseline}
+  .panel-label .tag{font-weight:600}
+  .panel-label .tag.ideal{color:var(--ink-soft)}
+  .panel-label .tag.real{color:var(--accent)}
+  .panel-label .sep{color:var(--ink-faint)}
+  .panel-label .formula{font-family:'IBM Plex Sans',sans-serif;font-style:italic;color:var(--ink-soft);text-transform:none;letter-spacing:0;font-size:13px}
+
+  svg.diagram{width:100%;height:auto;display:block;font-family:'IBM Plex Sans',sans-serif}
+
+  .ray{stroke:var(--ray);stroke-width:1.3;fill:none}
+  .axis{stroke:var(--axis);stroke-width:0.9;stroke-dasharray:4 4;fill:none}
+  .lens{fill:rgba(168,70,58,0.07);stroke:var(--accent);stroke-width:1.2}
+  .focal-dot{fill:var(--accent)}
+  .focal-plane{stroke:var(--accent);stroke-width:0.7;stroke-dasharray:3 3;opacity:0.5}
+  .bracket{stroke:var(--accent);stroke-width:1.3;fill:none}
+  .label{font-family:'JetBrains Mono',monospace;font-size:13px;fill:var(--ink-soft)}
+  .label.faint{fill:var(--ink-faint)}
+  .label.accent{fill:var(--accent);font-weight:500}
+  .label.sigma{font-family:'Source Serif 4',serif;font-style:italic;font-size:22px;fill:var(--accent);font-weight:600}
+
+  .figure-legend{display:flex;justify-content:center;gap:32px;margin:14px 0 4px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em}
+  .legend-item{display:inline-flex;align-items:center}
+
+  .caption{font-family:'Source Serif 4',serif;font-size:15.5px;color:var(--ink-soft);line-height:1.6;margin:0;padding-top:16px;border-top:1px solid var(--rule)}
+  .caption strong{color:var(--ink);font-weight:600}
+  .caption em{font-style:italic}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+
+      &lt;div class=&quot;figmeta&quot;&gt;
+        &lt;span&gt;Fig. 1&lt;/span&gt;
+        &lt;span class=&quot;rule&quot;&gt;&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;h1&gt;What does an aberration look like?&lt;/h1&gt;
+
+      &lt;div class=&quot;panels&quot;&gt;
+
+        &lt;!-- IDEAL panel --&gt;
+        &lt;div class=&quot;panel&quot;&gt;
+          &lt;div class=&quot;panel-label&quot;&gt;
+            &lt;span&gt;(a)&lt;/span&gt;
+            &lt;span class=&quot;tag ideal&quot;&gt;Ideal behavior&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;svg class=&quot;diagram&quot; viewBox=&quot;0 0 340 240&quot; preserveAspectRatio=&quot;xMidYMid meet&quot;&gt;
+            &lt;!-- optical axis --&gt;
+            &lt;line class=&quot;axis&quot; x1=&quot;10&quot; y1=&quot;120&quot; x2=&quot;330&quot; y2=&quot;120&quot;/&gt;
+
+            &lt;!-- incoming rays --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;40&quot;  x2=&quot;160&quot; y2=&quot;40&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;75&quot;  x2=&quot;160&quot; y2=&quot;75&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;120&quot; x2=&quot;160&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;165&quot; x2=&quot;160&quot; y2=&quot;165&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;200&quot; x2=&quot;160&quot; y2=&quot;200&quot;/&gt;
+
+            &lt;!-- lens --&gt;
+            &lt;ellipse class=&quot;lens&quot; cx=&quot;160&quot; cy=&quot;120&quot; rx=&quot;9&quot; ry=&quot;85&quot;/&gt;
+
+            &lt;!-- converging rays after lens — all to a single point --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;40&quot;  x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;75&quot;  x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;165&quot; x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;200&quot; x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+
+            &lt;!-- single focal point — visual anchor for convergence --&gt;
+            &lt;circle class=&quot;focal-dot&quot; cx=&quot;260&quot; cy=&quot;120&quot; r=&quot;4&quot;/&gt;
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+        &lt;!-- REAL panel --&gt;
+        &lt;div class=&quot;panel&quot;&gt;
+          &lt;div class=&quot;panel-label&quot;&gt;
+            &lt;span&gt;(b)&lt;/span&gt;
+            &lt;span class=&quot;tag real&quot;&gt;Real behavior&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;svg class=&quot;diagram&quot; viewBox=&quot;0 0 340 240&quot; preserveAspectRatio=&quot;xMidYMid meet&quot;&gt;
+            &lt;!-- optical axis --&gt;
+            &lt;line class=&quot;axis&quot; x1=&quot;10&quot; y1=&quot;120&quot; x2=&quot;330&quot; y2=&quot;120&quot;/&gt;
+
+            &lt;!-- incoming rays --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;40&quot;  x2=&quot;160&quot; y2=&quot;40&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;75&quot;  x2=&quot;160&quot; y2=&quot;75&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;120&quot; x2=&quot;160&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;165&quot; x2=&quot;160&quot; y2=&quot;165&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;10&quot; y1=&quot;200&quot; x2=&quot;160&quot; y2=&quot;200&quot;/&gt;
+
+            &lt;!-- lens --&gt;
+            &lt;ellipse class=&quot;lens&quot; cx=&quot;160&quot; cy=&quot;120&quot; rx=&quot;9&quot; ry=&quot;85&quot;/&gt;
+
+            &lt;!-- spherical aberration: marginal rays focus closer than paraxial.
+                 All rays stop at x=260 (nominal focal plane), revealing transverse spread. --&gt;
+            &lt;!-- top marginal: focuses at x=232, continues to nominal plane --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;40&quot;  x2=&quot;232&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;232&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;148&quot;/&gt;
+            &lt;!-- upper intermediate: focuses at x=245 --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;75&quot;  x2=&quot;245&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;245&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;128&quot;/&gt;
+            &lt;!-- axis ray --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;120&quot;/&gt;
+            &lt;!-- lower intermediate: focuses at x=245 --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;165&quot; x2=&quot;245&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;245&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;112&quot;/&gt;
+            &lt;!-- bottom marginal: focuses at x=232 --&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;160&quot; y1=&quot;200&quot; x2=&quot;232&quot; y2=&quot;120&quot;/&gt;
+            &lt;line class=&quot;ray&quot; x1=&quot;232&quot; y1=&quot;120&quot; x2=&quot;260&quot; y2=&quot;92&quot;/&gt;
+
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+      &lt;/div&gt;
+
+      &lt;div class=&quot;figure-legend&quot;&gt;
+        &lt;span class=&quot;legend-item&quot;&gt;
+          &lt;svg width=&quot;28&quot; height=&quot;3&quot; viewBox=&quot;0 0 28 3&quot; style=&quot;margin-right:8px;display:inline-block;vertical-align:middle&quot;&gt;
+            &lt;line x1=&quot;0&quot; y1=&quot;1.5&quot; x2=&quot;28&quot; y2=&quot;1.5&quot; stroke=&quot;#2a2622&quot; stroke-width=&quot;1.3&quot;/&gt;
+          &lt;/svg&gt;
+          light rays
+        &lt;/span&gt;
+        &lt;span class=&quot;legend-item&quot;&gt;
+          &lt;svg width=&quot;14&quot; height=&quot;22&quot; viewBox=&quot;0 0 14 22&quot; style=&quot;margin-right:8px;display:inline-block;vertical-align:middle&quot;&gt;
+            &lt;ellipse cx=&quot;7&quot; cy=&quot;11&quot; rx=&quot;4&quot; ry=&quot;10&quot; fill=&quot;rgba(168,70,58,0.07)&quot; stroke=&quot;#a8463a&quot; stroke-width=&quot;1.2&quot;/&gt;
+          &lt;/svg&gt;
+          lens
+        &lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;p class=&quot;caption&quot;&gt;The ideal panel shows rays converging cleanly to one focal point; in the real panel, the same rays don't all meet at that point but spread out instead. That spread is due to &lt;strong&gt;aberrations&lt;/strong&gt;.&lt;/p&gt;
+
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Aberrations schematic" scrolling="no"></iframe>
+    <figcaption>Fig. 1</figcaption>
+  </figure>
+
+  <p>Aberration diagnosis is difficult because the goal isn't simply driving these aberrations to zero. Every real lens system has nonzero aberrations and a "good" design effectively balances them against each other to achieve a performance goal. In practice, this means some aberrations are indeed driven to zero, some are left in place to cancel against others, and then some are the true limiting factors holding the design back. With many kinds of aberrations interacting in non-linear ways, an engineer can't just look for the biggest one and drive it to zero.</p>
+
+
+  <!-- ============================================================== -->
+  <!-- §2 · HOW BASELINE CLAUDE DOES                                  -->
+  <!-- ============================================================== -->
+
+  <h2 id="methodology">Methodology</h2>
+
+  <!-- (b) Methodology — was old §3 P1 + Fig 2 + P2 + P3 -->
+  <p>To get a better sense for how Claude Opus 4.7 performs on aberration identification, I analyzed 50 different optical designs hand-curated from popular textbooks. The ground truth is the author's commentary on each design, which cleanly breaks down into three categories: (1) aberrations the author labels as well-corrected, (2) aberrations labeled as residuals, and (3) a ranking of which residual "limits the design." To develop the evaluation corpus, I transcribed the full lens specifications from each textbook into standardized optical prescriptions and translated the author's surrounding commentary into structured rubrics of must-mention and must-not-claim assertions.</p>
+
+  <figure class="eval-case">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Sample eval case&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after { box-sizing: border-box; }
+  :root {
+    --bg: #f5f1e4;
+    --card: #fefcf5;
+    --ink: #1f1c18;
+    --ink-soft: #4a4640;
+    --ink-faint: #8e887d;
+    --accent: #a8463a;
+    --accent-deep: #8b3326;
+    --accent-bg: #f3dcd5;
+    --rule: #e3dcc7;
+    --strike: #b8b2a1;
+    --grey-chip: #c5c0b0;
+    --quote-bg: #f8f4e8;
+    --neutral-bg: #ebe5d2;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .wrap { padding: 28px 32px; max-width: 960px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 26px 34px 30px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 26px;
+    gap: 24px;
+  }
+  .head-left { flex: 1; min-width: 0; }
+  .head-right { text-align: right; flex-shrink: 0; }
+
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+
+  .limiter-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .col-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 18px;
+  }
+  .col-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .col-icon.check { background: var(--accent); }
+  .col-icon.cross { background: var(--grey-chip); }
+  .col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .item {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: baseline;
+  }
+  .item:last-child { margin-bottom: 0; }
+  .item-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .item-text {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .item-text mark {
+    background: var(--accent-bg);
+    color: var(--accent-deep);
+    padding: 0 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .item-text.strike {
+    color: var(--strike);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  .source-quote {
+    background: var(--quote-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    padding: 16px 22px 14px;
+    margin: 0 0 28px;
+  }
+  .quote-body {
+    margin: 0 0 8px;
+    font-style: italic;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .quote-attribution {
+    margin: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    font-style: normal;
+  }
+  .quote-attribution em { font-style: italic; }
+  .quote-body mark {
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-style: normal;
+  }
+  .quote-body mark.q-cover {
+    background: var(--accent-bg);
+    color: var(--accent-deep);
+  }
+  .quote-body mark.q-not-say {
+    background: var(--neutral-bg);
+    color: var(--ink-soft);
+  }
+  .quote-elide {
+    color: var(--ink-faint);
+    font-style: normal;
+    letter-spacing: 0.1em;
+    margin: 0 2px;
+  }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+
+      &lt;div class=&quot;head&quot;&gt;
+        &lt;div class=&quot;head-left&quot;&gt;
+          &lt;h1&gt;How is each eval case built?&lt;/h1&gt;
+          &lt;p style=&quot;margin: 8px 0 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5;&quot;&gt;A quote from the textbook author's commentary gets transcribed into a structured rubric of must-mention and must-not-claim assertions.&lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;source-quote&quot;&gt;
+        &lt;p class=&quot;quote-body&quot;&gt;&amp;ldquo;&amp;hellip;&lt;mark class=&quot;q-not-say&quot;&gt;achieves an apochromatic correction for the marginal rays&lt;/mark&gt;, but &lt;mark class=&quot;q-cover&quot;&gt;a significant amount of spherochromatic remains as the performance limiter&lt;/mark&gt;&amp;rdquo;&lt;/p&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;columns&quot;&gt;
+
+        &lt;div class=&quot;col&quot;&gt;
+          &lt;div class=&quot;col-head&quot;&gt;
+            &lt;div class=&quot;col-icon check&quot;&gt;&amp;check;&lt;/div&gt;
+            &lt;div class=&quot;col-label&quot;&gt;Must mention&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;item&quot;&gt;
+            &lt;div class=&quot;item-num&quot;&gt;01&lt;/div&gt;
+            &lt;div class=&quot;item-text&quot;&gt;Identifies &lt;mark&gt;spherochromatism&lt;/mark&gt; as a residual.&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;item&quot;&gt;
+            &lt;div class=&quot;item-num&quot;&gt;02&lt;/div&gt;
+            &lt;div class=&quot;item-text&quot;&gt;Names &lt;mark&gt;spherochromatism&lt;/mark&gt; as the performance-limiting term.&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;col&quot;&gt;
+          &lt;div class=&quot;col-head&quot;&gt;
+            &lt;div class=&quot;col-icon cross&quot;&gt;&amp;times;&lt;/div&gt;
+            &lt;div class=&quot;col-label&quot;&gt;Must not claim&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;item&quot;&gt;
+            &lt;div class=&quot;item-num&quot;&gt;01&lt;/div&gt;
+            &lt;div class=&quot;item-text strike&quot;&gt;Names primary axial chromatic aberration as a limiting residual.&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;item&quot;&gt;
+            &lt;div class=&quot;item-num&quot;&gt;02&lt;/div&gt;
+            &lt;div class=&quot;item-text strike&quot;&gt;Names secondary spectrum as a limiting residual.&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Sample eval case" scrolling="no"></iframe>
+    <figcaption>Fig. 2 &middot; sample evaluation case</figcaption>
+  </figure>
+
+  <p>An important note is that I chose to ignore any aberration the author did not mention by name. In other words, the LLM was not penalized for naming additional non-limiting aberrations or staying silent on them as long as it did not contradict the author's commentary.</p>
+
+  <p>As our baseline, Claude Opus 4.7 was given the same information an optical engineer would use to diagnose a design by hand. Each of these designs was evaluated 10 times to account for possible variance. The pipeline for each trial was as follows: I pasted the optical prescription (i.e. the numbers that define an optical system) plus an 11-section analysis of the prescription (Seidel, ray fans, OPD, MTF, Zernikes, chromatic shift, etc.) in a single message. I also included a short system prompt explaining the agent's role as an optical aberration diagnoser in order to standardize the response format across rounds. The model's response was then graded with Claude Sonnet 4.6 as a judge. The judge's role was to determine whether the free form response from the diagnoser model hit each of the criteria specified in the evaluation case. Its role was minimal; essentially, it was used as a more powerful regex matcher. To validate the judge, I hand-graded a random sample of its verdicts spanning passing and failing trials across all 50 cases, and the judge's grades agreed with my own reading in every instance.</p>
+
+
+  <!-- ============================================================== -->
+  <!-- §2b · HOW THE BASELINE FAILS                                   -->
+  <!-- ============================================================== -->
+
+  <h2 id="baseline-results">Baseline Claude results</h2>
+
+  <!-- (c) Baseline aggregate chart -->
+  <figure class="single">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Baseline LLM — score distribution&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Caveat:wght@500&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --accent:#3f5c7d;
+    --accent-deep:#2c4361;
+    --accent-fill:#bccada;
+    --ink:#1f1c18;
+    --ink-soft:#5a554d;
+    --ink-faint:#9d978a;
+    --bg:#f5f1e4;
+    --card:#fefcf5;
+    --rule:#e3dcc7;
+    --grid:#ece5cf;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{padding:32px 36px;max-width:880px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:24px 30px 26px;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+
+  .figmeta{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:18px}
+  .figmeta .right{color:var(--accent);font-weight:600}
+
+  h1{font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-0.012em;color:var(--ink)}
+  .subtitle{font-style:italic;font-size:14px;color:var(--ink-soft);margin:0 0 22px}
+
+  .stats{display:grid;grid-template-columns:auto auto auto;gap:42px;margin-bottom:18px}
+  .stat .label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:6px;font-weight:500}
+  .stat .value{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .stat.primary .value{color:var(--accent)}
+
+  .chart-wrap{margin:12px 0 8px;padding-top:6px}
+  .chart-frame{
+    display:grid;
+    grid-template-columns:auto auto 1fr;
+    grid-template-rows:1fr auto auto;
+    column-gap:8px;
+  }
+  .y-axis-title{
+    grid-column:1;grid-row:1;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    align-self:center;
+  }
+  .y-ticks{
+    grid-column:2;grid-row:1;
+    display:flex;flex-direction:column;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1;
+    color:var(--ink-soft);text-align:right;
+    padding-right:8px;
+  }
+  .plot{grid-column:3;grid-row:1}
+  svg.chart{width:100%;height:380px;display:block;overflow:visible}
+
+  .axis line.tick-line{stroke:var(--rule);stroke-width:1}
+  .axis line.grid{stroke:var(--grid);stroke-dasharray:2 4;stroke-width:1}
+  .area{fill:var(--accent-fill);fill-opacity:0.6;stroke:var(--accent-deep);stroke-width:1.4;stroke-linejoin:round}
+
+  .x-ticks{
+    grid-column:3;grid-row:2;
+    display:flex;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    color:var(--ink-soft);
+    padding-top:10px;
+  }
+  .x-axis-title{
+    grid-column:3;grid-row:3;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    text-align:center;
+    padding-top:10px;
+  }
+
+  .caption{font-size:15.5px;color:var(--ink-soft);line-height:1.6;margin:18px 0 0}
+  .caption strong{color:var(--ink);font-weight:600}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;div class=&quot;figmeta&quot;&gt;
+        &lt;span&gt;Fig. 3&lt;/span&gt;
+        &lt;span class=&quot;right&quot;&gt;Baseline LLM&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;h1&gt;Baseline LLM score distribution&lt;/h1&gt;
+
+      &lt;div class=&quot;stats&quot;&gt;
+        &lt;div class=&quot;stat primary&quot;&gt;&lt;div class=&quot;label&quot;&gt;Mean&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;68.9&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;37.3&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;within-case standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;27.5&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;chart-wrap&quot;&gt;
+        &lt;div class=&quot;chart-frame&quot;&gt;
+          &lt;div class=&quot;y-axis-title&quot;&gt;Percent of trials&lt;/div&gt;
+          &lt;div class=&quot;y-ticks&quot;&gt;&lt;span&gt;100%&lt;/span&gt;&lt;span&gt;50%&lt;/span&gt;&lt;span&gt;0%&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;plot&quot;&gt;
+            &lt;svg class=&quot;chart&quot; viewBox=&quot;0 0 1000 280&quot; preserveAspectRatio=&quot;none&quot;&gt;
+              &lt;g class=&quot;axis&quot;&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;250&quot; y1=&quot;0&quot; x2=&quot;250&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;500&quot; y1=&quot;0&quot; x2=&quot;500&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;750&quot; y1=&quot;0&quot; x2=&quot;750&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;1000&quot; y1=&quot;0&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;280&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+              &lt;/g&gt;
+
+              &lt;!-- Area: 21 bins of width 5 over score 0..100. Counts (real data, 500 trials):
+                   75,0,0,4,14,4,13,0,14,4,35,5,12,31,21,3,9,8,0,0,248
+                   y-axis renders count as percent of 500 trials.
+                   y = 280 - (count/500) * 280 --&gt;
+              &lt;path class=&quot;area&quot; d=&quot;M 0,280 L 0,238 L 50,280 L 100,280 L 150,277.76 L 200,272.16 L 250,277.76 L 300,272.72 L 350,280 L 400,272.16 L 450,277.76 L 500,260.4 L 550,277.2 L 600,273.28 L 650,262.64 L 700,268.24 L 750,278.32 L 800,274.96 L 850,275.52 L 900,280 L 950,280 L 1000,141.12 L 1000,280 Z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;x-ticks&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;25&lt;/span&gt;&lt;span&gt;50&lt;/span&gt;&lt;span&gt;75&lt;/span&gt;&lt;span&gt;100&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;x-axis-title&quot;&gt;% of criteria met&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;p class=&quot;caption&quot;&gt;The baseline has a dominant peak at 100% of criteria met and a smaller peak at 0%, with a wide spread in between. Only &lt;strong&gt;10 of the 50 cases&lt;/strong&gt; scored 100% every round. &lt;strong&gt;20 cases&lt;/strong&gt; swung from 0 to 100 across the 10 rounds on the same prescription, evident in the within-case standard deviation of &lt;strong&gt;27.5&lt;/strong&gt;.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Baseline LLM score distribution" scrolling="no" style="height: 820px;"></iframe>
+    <figcaption>Fig. 3 &middot; baseline LLM score distribution across 500 trials</figcaption>
+  </figure>
+
+  <!-- (d) Failure modes — was old "§3 Where the model misses" P1–P4 (minus the comparative chart-pair line) -->
+  <p>The baseline model suffers from high variance, with 20 of the 50 cases oscillating between 0 and 100 percent of criteria covered across rounds. When the baseline is wrong, whether consistently on a specific design or randomly across rounds, the wrong-round answers are clustered into two main failure modes.</p>
+
+  <p>The first failure mode of the baseline is treating the raw magnitude of Seidel/Zernike values as the only analysis metric that matters. In one example, a naive reading of "biggest value = problematic aberration" leads the LLM to name distortion as the limiter when the correct answer is oblique spherical aberration. In another design, the chromatic longitudinal aberration sits well below the λ/14 RMS diffraction-limit threshold (Strehl ≥ 0.8) at −0.042 waves, so the LLM labels axial color as corrected. However, the author explains that axial color is a real chromatic residual that lives in higher orders.</p>
+
+  <p>The second failure mode of the baseline is naming the right "family" but the wrong specific aberration. For example, in one design the LLM consistently names the secondary spectrum as the dominant residual when the actual issue is spherochromatism. Both of these aberrations belong to the chromatic "family" but the LLM labels secondary spectrum as the limiter rather than higher-order spherochromatism. In another case, the correct answer is "secondary spectrum of lateral color", but the baseline consistently names the secondary spectrum of axial color as the limiter across all 10 rounds instead.</p>
+
+  <p>The remaining baseline errors are a long tail of one-off failures: sign omissions, cross-section confusions, miscellaneous lookalikes.</p>
+
+
+  <!-- ============================================================== -->
+  <!-- §2c · FAILURE-AWARE CLAUDE RESULTS                             -->
+  <!-- ============================================================== -->
+
+  <h2 id="failure-aware">Failure-aware Claude results</h2>
+
+  <p>I spent months exploring various possible versions of strictly system prompt engineering. For example, if I include the two concrete failure modes from above, we would expect the scores of the LLM to increase. However, on average the LLM performs nearly the same.</p>
+
+  <figure class="single">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Failure-aware LLM — score distribution&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Caveat:wght@500&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --accent:#3f5c7d;
+    --accent-deep:#2c4361;
+    --accent-fill:#bccada;
+    --ink:#1f1c18;
+    --ink-soft:#5a554d;
+    --ink-faint:#9d978a;
+    --bg:#f5f1e4;
+    --card:#fefcf5;
+    --rule:#e3dcc7;
+    --grid:#ece5cf;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{padding:32px 36px;max-width:880px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:24px 30px 26px;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+
+  .figmeta{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:18px}
+  .figmeta .right{color:var(--accent);font-weight:600}
+
+  h1{font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-0.012em;color:var(--ink)}
+  .subtitle{font-style:italic;font-size:14px;color:var(--ink-soft);margin:0 0 22px}
+
+  .stats{display:grid;grid-template-columns:auto auto auto;gap:42px;margin-bottom:18px}
+  .stat .label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:6px;font-weight:500}
+  .stat .value{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .stat.primary .value{color:var(--accent)}
+
+  .chart-wrap{margin:12px 0 8px;padding-top:6px}
+  .chart-frame{
+    display:grid;
+    grid-template-columns:auto auto 1fr;
+    grid-template-rows:1fr auto auto;
+    column-gap:8px;
+  }
+  .y-axis-title{
+    grid-column:1;grid-row:1;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    align-self:center;
+  }
+  .y-ticks{
+    grid-column:2;grid-row:1;
+    display:flex;flex-direction:column;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1;
+    color:var(--ink-soft);text-align:right;
+    padding-right:8px;
+  }
+  .plot{grid-column:3;grid-row:1}
+  svg.chart{width:100%;height:380px;display:block;overflow:visible}
+
+  .axis line.tick-line{stroke:var(--rule);stroke-width:1}
+  .axis line.grid{stroke:var(--grid);stroke-dasharray:2 4;stroke-width:1}
+  .area{fill:var(--accent-fill);fill-opacity:0.6;stroke:var(--accent-deep);stroke-width:1.4;stroke-linejoin:round}
+
+  .x-ticks{
+    grid-column:3;grid-row:2;
+    display:flex;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    color:var(--ink-soft);
+    padding-top:10px;
+  }
+  .x-axis-title{
+    grid-column:3;grid-row:3;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    text-align:center;
+    padding-top:10px;
+  }
+
+  .caption{font-size:15.5px;color:var(--ink-soft);line-height:1.6;margin:18px 0 0}
+  .caption strong{color:var(--ink);font-weight:600}
+  .caption a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(63,92,125,0.35)}
+  .caption a:hover{border-bottom-color:var(--accent)}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;div class=&quot;figmeta&quot;&gt;
+        &lt;span&gt;Fig. 4&lt;/span&gt;
+        &lt;span class=&quot;right&quot;&gt;Failure-aware LLM&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;h1&gt;Failure-aware LLM score distribution&lt;/h1&gt;
+
+      &lt;div class=&quot;stats&quot;&gt;
+        &lt;div class=&quot;stat primary&quot;&gt;&lt;div class=&quot;label&quot;&gt;Mean&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;68.7&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;38.1&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;within-case standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;26.9&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;chart-wrap&quot;&gt;
+        &lt;div class=&quot;chart-frame&quot;&gt;
+          &lt;div class=&quot;y-axis-title&quot;&gt;Percent of trials&lt;/div&gt;
+          &lt;div class=&quot;y-ticks&quot;&gt;&lt;span&gt;100%&lt;/span&gt;&lt;span&gt;50%&lt;/span&gt;&lt;span&gt;0%&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;plot&quot;&gt;
+            &lt;svg class=&quot;chart&quot; viewBox=&quot;0 0 1000 280&quot; preserveAspectRatio=&quot;none&quot;&gt;
+              &lt;g class=&quot;axis&quot;&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;250&quot; y1=&quot;0&quot; x2=&quot;250&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;500&quot; y1=&quot;0&quot; x2=&quot;500&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;750&quot; y1=&quot;0&quot; x2=&quot;750&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;1000&quot; y1=&quot;0&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;280&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+              &lt;/g&gt;
+
+              &lt;!-- Area: 21 bins of width 5 over score 0..100. Counts (real data, 499 trials):
+                   78,0,2,4,13,9,14,0,19,2,17,5,10,28,25,3,11,6,0,0,253
+                   y-axis renders count as percent of 499 trials.
+                   y = 280 - (count/499) * 280 --&gt;
+              &lt;path class=&quot;area&quot; d=&quot;M 0,280 L 0,236.23 L 50,280 L 100,278.88 L 150,277.76 L 200,272.71 L 250,274.95 L 300,272.14 L 350,280 L 400,269.34 L 450,278.88 L 500,270.46 L 550,277.19 L 600,274.39 L 650,264.29 L 700,265.97 L 750,278.32 L 800,273.83 L 850,276.63 L 900,280 L 950,280 L 1000,138.04 L 1000,280 Z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;x-ticks&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;25&lt;/span&gt;&lt;span&gt;50&lt;/span&gt;&lt;span&gt;75&lt;/span&gt;&lt;span&gt;100&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;x-axis-title&quot;&gt;% of criteria met&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;p class=&quot;caption&quot;&gt;The failure-aware model's system prompt includes directions on how to avoid the two concrete failure modes discussed in the &lt;a href=&quot;#baseline-results&quot; target=&quot;_parent&quot;&gt;baseline results&lt;/a&gt;. The failure-aware distribution mirrors the baseline almost exactly, with the same dominant peak at 100% of criteria met, a smaller peak at 0%, and a wide spread between. &lt;strong&gt;10 of the 50 cases&lt;/strong&gt; scored 100% every round. The mean of &lt;strong&gt;68.7&lt;/strong&gt; and the within-case standard deviation of &lt;strong&gt;26.9&lt;/strong&gt; both sit within roughly a point of the baseline.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Failure-aware LLM score distribution" scrolling="no" style="height: 880px;"></iframe>
+    <figcaption>Fig. 4 &middot; failure-aware LLM score distribution across 500 trials</figcaption>
+  </figure>
+
+  <p>At first glance, it seems like the system prompt additions did not affect the results. While that's true for the overall statistics, case-by-case it is not: 105 rounds got better and 113 rounds got worse.</p>
+
+  <p>After a thorough analysis of each case, we can conclude that the lack of improvement stems from the LLM applying the advice uniformly rather than selectively. On designs whose true limiter was a primary aberration, it would reach instead for a higher-order explanation. On others, it would initially name the correct residual, only to reason itself to conclude a different aberration within the same family. This weakness stems from the central complexity of optical aberration diagnosis: sometimes, one number represents the whole story; other times, numbers interact in subtle ways such that local results cannot be examined in isolation. <strong>An LLM cannot be taught to distinguish these cases from system prompting alone.</strong></p>
+
+
+  <!-- ============================================================== -->
+  <!-- §3 · HOW THE OPTICAL MENTAL MODEL WORKS                        -->
+  <!-- ============================================================== -->
+
+  <h2 id="building-omm">Building the Optical Mental Model (OMM)</h2>
+
+  <p>To overcome the fundamental limitations of system prompting alone, I built the Optical Mental Model. The OMM combines two layers of engineering: a deterministic layer that pre-processes the analysis output into structured aberration signatures, and a system prompt that scripts the LLM's reasoning workflow.</p>
+
+  <p>The deterministic layer contains 14 aberration detectors. Each extracts a different signature from the raw analysis data. This data includes Zernike mode coefficients sampled at multiple field points and wavelengths, ray-fan polynomial coefficients (3rd, 5th, 7th order), field-growth slopes of individual modes, wavelength-dispersion slopes, sign reversal patterns, pupil cross-ratios (margin vs 0.707 pupil zone), diffraction-limit-anchored magnitudes (λ/14 RMS, Strehl ≥ 0.8), form-class structural matches, and others. The detectors collectively translate the wall of raw numbers into structured evidence for which named aberrations are present. Then, a downstream model reads the 14 signatures together and outputs which residuals are limiting the design, rather than just listing the output of each detector on its own.</p>
+
+  <figure class="omm-schematic">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Optical Mental Model · architecture&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after { box-sizing: border-box; }
+  :root {
+    --bg: #f5f1e4;
+    --card: #fefcf5;
+    --ink: #1f1c18;
+    --ink-soft: #4a4640;
+    --ink-faint: #8e887d;
+    --accent: #a8463a;
+    --accent-deep: #8b3326;
+    --accent-bg: #f3dcd5;
+    --rule: #e3dcc7;
+    --chip-bg: #fbf8ee;
+    --chip-rule: #e6dfca;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 15px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .wrap { padding: 28px; max-width: 1240px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 28px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+
+  .figmeta {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.12em; color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .figmeta .rule { flex: 1; height: 1px; background: var(--rule); }
+
+  h1 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 24px; font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+  }
+  .subtitle { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 22px; }
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: 110px 22px 180px 22px 1fr 22px 240px 22px 200px;
+    align-items: stretch;
+    margin-bottom: 18px;
+  }
+
+  .col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.1em; color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    height: 16px;
+  }
+
+  .arrow {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 26px;
+  }
+  .arrow svg { display: block; }
+
+  /* RAW column */
+  .raw-stack {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-rule);
+    border-radius: 5px;
+    height: 340px;
+    padding: 16px 14px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+  }
+  .raw-bar { height: 5px; background: var(--rule); border-radius: 2px; }
+  .raw-bar.w50 { width: 50%; }
+  .raw-bar.w55 { width: 55%; }
+  .raw-bar.w60 { width: 60%; }
+  .raw-bar.w65 { width: 65%; }
+  .raw-bar.w70 { width: 70%; }
+  .raw-bar.w75 { width: 75%; }
+  .raw-bar.w80 { width: 80%; }
+  .raw-bar.w85 { width: 85%; }
+  .raw-bar.w90 { width: 90%; }
+
+  /* DETECTORS column */
+  .det-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    height: 340px;
+    align-content: stretch;
+    grid-template-rows: repeat(7, 1fr);
+  }
+  .det-cell {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-rule);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-soft);
+  }
+  .det-cell.highlight {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    font-weight: 600;
+  }
+
+  /* SIGNATURES column */
+  .sig-list {
+    height: 340px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sig-row {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-rule);
+    border-radius: 4px;
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--ink-soft);
+    flex: 1;
+  }
+  .sig-row .name { font-weight: 500; }
+  .sig-row .val { font-weight: 600; color: var(--ink); }
+  .sig-row.highlight { background: var(--accent-bg); border-color: var(--accent); }
+  .sig-row.highlight .name, .sig-row.highlight .val { color: var(--accent-deep); }
+  .sig-more {
+    color: var(--ink-faint);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 14px 0;
+  }
+
+  /* PROMPT column */
+  .prompt-box {
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-rule);
+    border-radius: 5px;
+    height: 340px;
+    padding: 18px 20px;
+    display: flex; flex-direction: column;
+  }
+  .prompt-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 16px;
+  }
+  .prompt-step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0;
+    font-size: 14.5px; color: var(--ink);
+  }
+  .prompt-step .num {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--ink-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-soft);
+    flex-shrink: 0;
+  }
+  .prompt-step .step-label { font-weight: 500; }
+
+  /* OUT column */
+  .out-box {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    height: 340px;
+    padding: 22px 20px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .out-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .out-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 17px; font-weight: 600;
+    color: var(--accent-deep);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .out-sign {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .out-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--accent-deep);
+    font-weight: 600;
+    padding-top: 14px;
+    border-top: 1px solid rgba(168,70,58,0.25);
+  }
+
+  .caption {
+    font-family: 'Source Serif 4', serif;
+    font-size: 14.5px; color: var(--ink-soft);
+    line-height: 1.6; margin: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .caption strong { color: var(--ink); font-weight: 600; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+
+      &lt;div class=&quot;figmeta&quot;&gt;
+        &lt;span&gt;Fig. 5&lt;/span&gt;
+        &lt;span class=&quot;rule&quot;&gt;&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;h1&gt;The Optical Mental Model, end-to-end.&lt;/h1&gt;
+      &lt;p class=&quot;subtitle&quot;&gt;Raw analysis → 14 deterministic detectors → structured signatures → scripted LLM → named diagnosis.&lt;/p&gt;
+
+      &lt;div class=&quot;pipeline&quot;&gt;
+
+        &lt;!-- RAW --&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;col-label&quot;&gt;Raw&lt;/div&gt;
+          &lt;div class=&quot;raw-stack&quot;&gt;
+            &lt;div class=&quot;raw-bar w85&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w60&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w90&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w70&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w55&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w80&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w75&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w65&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w85&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w50&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w90&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w70&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w60&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;raw-bar w80&quot;&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;arrow&quot;&gt;
+          &lt;svg width=&quot;22&quot; height=&quot;14&quot; viewBox=&quot;0 0 22 14&quot;&gt;
+            &lt;line x1=&quot;0&quot; y1=&quot;7&quot; x2=&quot;18&quot; y2=&quot;7&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+            &lt;polyline points=&quot;14,3 20,7 14,11&quot; fill=&quot;none&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+        &lt;!-- DETECTORS --&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;col-label&quot;&gt;Detectors&lt;/div&gt;
+          &lt;div class=&quot;det-grid&quot;&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D01&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D02&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D03&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D04&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D05&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D06&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D07&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D08&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D09&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D10&lt;/div&gt;
+            &lt;div class=&quot;det-cell highlight&quot;&gt;D11&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D12&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D13&lt;/div&gt;
+            &lt;div class=&quot;det-cell&quot;&gt;D14&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;arrow&quot;&gt;
+          &lt;svg width=&quot;22&quot; height=&quot;14&quot; viewBox=&quot;0 0 22 14&quot;&gt;
+            &lt;line x1=&quot;0&quot; y1=&quot;7&quot; x2=&quot;18&quot; y2=&quot;7&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+            &lt;polyline points=&quot;14,3 20,7 14,11&quot; fill=&quot;none&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+        &lt;!-- SIGNATURES --&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;col-label&quot;&gt;Signatures&lt;/div&gt;
+          &lt;div class=&quot;sig-list&quot;&gt;
+            &lt;div class=&quot;sig-row highlight&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;oblique-spherical&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;10.6 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-row&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;primary spherical&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;0.4 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-row&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;coma&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;1.4 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-row&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;astigmatism&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;0.8 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-row&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;secondary spectrum&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;0.6 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-row&quot;&gt;
+              &lt;span class=&quot;name&quot;&gt;spherochromatism&lt;/span&gt;
+              &lt;span class=&quot;val&quot;&gt;0.3 ×&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;sig-more&quot;&gt;+ 8 more&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;arrow&quot;&gt;
+          &lt;svg width=&quot;22&quot; height=&quot;14&quot; viewBox=&quot;0 0 22 14&quot;&gt;
+            &lt;line x1=&quot;0&quot; y1=&quot;7&quot; x2=&quot;18&quot; y2=&quot;7&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+            &lt;polyline points=&quot;14,3 20,7 14,11&quot; fill=&quot;none&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+        &lt;!-- SCRIPTED PROMPT --&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;col-label&quot;&gt;Scripted prompt&lt;/div&gt;
+          &lt;div class=&quot;prompt-box&quot;&gt;
+            &lt;div class=&quot;prompt-title&quot;&gt;system prompt&lt;/div&gt;
+            &lt;div class=&quot;prompt-step&quot;&gt;&lt;span class=&quot;num&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;step-label&quot;&gt;name residual&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;prompt-step&quot;&gt;&lt;span class=&quot;num&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;step-label&quot;&gt;cite evidence&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;prompt-step&quot;&gt;&lt;span class=&quot;num&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;step-label&quot;&gt;reject lookalikes&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;prompt-step&quot;&gt;&lt;span class=&quot;num&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;step-label&quot;&gt;name a sign&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;prompt-step&quot;&gt;&lt;span class=&quot;num&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;step-label&quot;&gt;synthesize&lt;/span&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;arrow&quot;&gt;
+          &lt;svg width=&quot;22&quot; height=&quot;14&quot; viewBox=&quot;0 0 22 14&quot;&gt;
+            &lt;line x1=&quot;0&quot; y1=&quot;7&quot; x2=&quot;18&quot; y2=&quot;7&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+            &lt;polyline points=&quot;14,3 20,7 14,11&quot; fill=&quot;none&quot; stroke=&quot;#8e887d&quot; stroke-width=&quot;1.3&quot;/&gt;
+          &lt;/svg&gt;
+        &lt;/div&gt;
+
+        &lt;!-- DIAGNOSIS --&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;col-label&quot;&gt;Diagnosis&lt;/div&gt;
+          &lt;div class=&quot;out-box&quot;&gt;
+            &lt;div class=&quot;out-label&quot;&gt;Verdict&lt;/div&gt;
+            &lt;div class=&quot;out-name&quot;&gt;oblique spherical aberration&lt;/div&gt;
+            &lt;div class=&quot;out-sign&quot;&gt;under-corrected&lt;/div&gt;
+            &lt;div class=&quot;out-score&quot;&gt;100% of criteria covered&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+      &lt;/div&gt;
+
+      &lt;p class=&quot;caption&quot;&gt;Read left-to-right. The deterministic layer translates the wall of analysis numbers into structured aberration signatures. Then the scripted prompt provides the reasoning workflow absent in the baseline LLM.&lt;/p&gt;
+
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Optical Mental Model architecture" scrolling="no"></iframe>
+    <figcaption>Fig. 5 &middot; the Optical Mental Model, end-to-end</figcaption>
+  </figure>
+
+  <p>To make this concrete, I'll dive into the oblique spherical aberration detector. The textbook definition for oblique spherical aberration is a fifth-order field-aperture cross-term, spherical-shape aberration that grows with field angle. The challenge is that at off-axis field points, the wavefront error is a sum of many aberration modes stacked together (e.g., coma, astigmatism, field-grown spherical, and others). Therefore, an engineer can't read oblique spherical off any single number.</p>
+
+  <p>The detector exploits an orthogonality property of Zernike mode decomposition. At any field point, the wavefront fits onto a sum of orthogonal Zernike modes where Z5/Z6 carry astigmatism, Z7/Z8 carry coma, and Z9 carries spherical. So Z9 cleanly isolates the primary spherical-shape component of the wavefront regardless of other modes. The detector samples Z9 at the on-axis field point (the system's primary spherical baseline) and at the outermost field point, takes the difference, and normalizes it by the λ/14 RMS diffraction-limit floor (Strehl ≥ 0.8). The signal <span class="math">|Z<sub>9,off</sub> − Z<sub>9,on</sub>| × 14</span> is dimensionless. A value of 1 means the field-grown Z9 alone is at the diffraction limit; 10 means an order of magnitude past it.</p>
+
+  <p>The naive approach to detecting off-axis spherical aberration is taking the ratio of off-axis to on-axis RMS wavefront error. It seems like a reasonable heuristic at first glance, but for oblique spherical, it has two failures. First, it's non-specific in that off-axis RMS growth could come from astigmatism, field curvature, or oblique SA, and the ratio doesn't distinguish them. Second, it's mathematically unstable because when the on-axis RMS is small, the ratio explodes. The Zernike isolation approach addresses both. This describes just one of the 14 detectors. The same naive-vs-robust battle played out for each of the others as well.</p>
+
+  <div class="callout">
+    <span class="eyebrow">The takeaway</span>
+    <p>Each detector isolates a different signature, each comes with its own design tradeoffs, and each was cross-checked against textbook commentary across the eval corpus. The months I spent building the OMM were a systematic iteration against the ground truth, often starting from what ended up being a naive approach for each detector and engineering it into a robust algorithm that fires correctly on real failures and stays quiet on corrected cases.</p>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- §4 · RESULTS (HOLDING PEN — content moved here, needs pass)    -->
+  <!-- ============================================================== -->
+
+  <h2 id="omm-results">Optical Mental Model results</h2>
+
+  <p>I added the OMM to Claude Opus 4.7 and ran it through the exact same eval pipeline as the baseline: same judge, same rubric, and same data.</p>
+
+  <figure class="single">
+    <iframe srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;OMM — score distribution&lt;/title&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.googleapis.com&quot;&gt;
+&lt;link rel=&quot;preconnect&quot; href=&quot;https://fonts.gstatic.com&quot; crossorigin&gt;
+&lt;link href=&quot;https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Caveat:wght@500&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --accent:#5d7a3e;
+    --accent-deep:#3f5c28;
+    --accent-fill:#c8d5b6;
+    --ink:#1f1c18;
+    --ink-soft:#5a554d;
+    --ink-faint:#9d978a;
+    --bg:#f5f1e4;
+    --card:#fefcf5;
+    --rule:#e3dcc7;
+    --grid:#ece5cf;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{padding:32px 36px;max-width:880px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:24px 30px 26px;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+
+  .figmeta{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:18px}
+  .figmeta .right{color:var(--accent);font-weight:600}
+
+  h1{font-family:'IBM Plex Sans',sans-serif;font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-0.012em;color:var(--ink)}
+  .subtitle{font-style:italic;font-size:14px;color:var(--ink-soft);margin:0 0 22px}
+
+  .stats{display:grid;grid-template-columns:auto auto auto;gap:42px;margin-bottom:18px}
+  .stat .label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:6px;font-weight:500}
+  .stat .value{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .stat.primary .value{color:var(--accent)}
+
+  .chart-wrap{margin:12px 0 8px;padding-top:6px}
+  .chart-frame{
+    display:grid;
+    grid-template-columns:auto auto 1fr;
+    grid-template-rows:1fr auto auto;
+    column-gap:8px;
+  }
+  .y-axis-title{
+    grid-column:1;grid-row:1;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    align-self:center;
+  }
+  .y-ticks{
+    grid-column:2;grid-row:1;
+    display:flex;flex-direction:column;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1;
+    color:var(--ink-soft);text-align:right;
+    padding-right:8px;
+  }
+  .plot{grid-column:3;grid-row:1}
+  svg.chart{width:100%;height:380px;display:block;overflow:visible}
+
+  .axis line.tick-line{stroke:var(--rule);stroke-width:1}
+  .axis line.grid{stroke:var(--grid);stroke-dasharray:2 4;stroke-width:1}
+  .area{fill:var(--accent-fill);fill-opacity:0.6;stroke:var(--accent-deep);stroke-width:1.4;stroke-linejoin:round}
+
+  .x-ticks{
+    grid-column:3;grid-row:2;
+    display:flex;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;
+    color:var(--ink-soft);
+    padding-top:10px;
+  }
+  .x-axis-title{
+    grid-column:3;grid-row:3;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;
+    text-align:center;
+    padding-top:10px;
+  }
+
+  .caption{font-size:15.5px;color:var(--ink-soft);line-height:1.6;margin:18px 0 0}
+  .caption strong{color:var(--ink);font-weight:600}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+      &lt;div class=&quot;figmeta&quot;&gt;
+        &lt;span&gt;Fig. 6&lt;/span&gt;
+        &lt;span class=&quot;right&quot;&gt;Optical Mental Model&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;h1&gt;Optical Mental Model score distribution&lt;/h1&gt;
+
+      &lt;div class=&quot;stats&quot;&gt;
+        &lt;div class=&quot;stat primary&quot;&gt;&lt;div class=&quot;label&quot;&gt;Mean&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;97.0&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;11.3&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;stat&quot;&gt;&lt;div class=&quot;label&quot;&gt;within-case standard deviation&lt;/div&gt;&lt;div class=&quot;value&quot;&gt;3.5&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;chart-wrap&quot;&gt;
+        &lt;div class=&quot;chart-frame&quot;&gt;
+          &lt;div class=&quot;y-axis-title&quot;&gt;Percent of trials&lt;/div&gt;
+          &lt;div class=&quot;y-ticks&quot;&gt;&lt;span&gt;100%&lt;/span&gt;&lt;span&gt;50%&lt;/span&gt;&lt;span&gt;0%&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;plot&quot;&gt;
+            &lt;svg class=&quot;chart&quot; viewBox=&quot;0 0 1000 280&quot; preserveAspectRatio=&quot;none&quot;&gt;
+              &lt;g class=&quot;axis&quot;&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;250&quot; y1=&quot;0&quot; x2=&quot;250&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;500&quot; y1=&quot;0&quot; x2=&quot;500&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;750&quot; y1=&quot;0&quot; x2=&quot;750&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;grid&quot; x1=&quot;1000&quot; y1=&quot;0&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;280&quot; x2=&quot;1000&quot; y2=&quot;280&quot;/&gt;
+                &lt;line class=&quot;tick-line&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;280&quot;/&gt;
+              &lt;/g&gt;
+
+              &lt;!-- Area: 21 bins of width 5 over score 0..100. Counts (real data, 500 trials):
+                   1,0,0,0,0,0,0,4,0,1,5,0,1,18,1,1,1,6,0,0,461
+                   y-axis renders count as percent of 500 trials.
+                   y = 280 - (count/500) * 280  (equivalent to pct/100 * 280) --&gt;
+              &lt;path class=&quot;area&quot; d=&quot;M 0,280 L 0,279.4 L 50,280 L 100,280 L 150,280 L 200,280 L 250,280 L 300,280 L 350,277.8 L 400,280 L 450,279.4 L 500,277.2 L 550,280 L 600,279.4 L 650,269.9 L 700,279.4 L 750,279.4 L 800,279.4 L 850,276.6 L 900,280 L 950,280 L 1000,21.8 L 1000,280 Z&quot;/&gt;
+            &lt;/svg&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;x-ticks&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;25&lt;/span&gt;&lt;span&gt;50&lt;/span&gt;&lt;span&gt;75&lt;/span&gt;&lt;span&gt;100&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;x-axis-title&quot;&gt;% of criteria met&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;p class=&quot;caption&quot;&gt;Across &lt;strong&gt;500 trials&lt;/strong&gt; (50 cases × 10 rounds), the Optical Mental Model concentrates tightly near 100 percent of criteria covered. The within-case standard deviation of &lt;strong&gt;3.5&lt;/strong&gt; means the same case yields nearly the same answer round after round. &lt;strong&gt;39 of 50 cases&lt;/strong&gt; scored a perfect 100 percent of criteria covered every round.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="Optical Mental Model score distribution" scrolling="no" style="height: 820px;"></iframe>
+    <figcaption>Fig. 6 &middot; Optical Mental Model score distribution across 500 trials</figcaption>
+  </figure>
+
+  <p>The Optical Mental Model scores 100s across all 10 rounds on 39 out of 50 cases, with an aggregate accuracy of 97.02% across all 500 case-rounds. Of the 11 cases that aren't perfect, 6 land above 90% on average and miss on just 1-3 rounds, typically due to a wording slip or a close-call ranking judgment. The other 5 average between 70% and 90%, where multiple strong detector signals make the agent's ranking decision noisier and individual rounds occasionally dip below 70%. Those dips come from residual LLM stochasticity still slipping through the OMM's scaffolding, which we'll address in future work.</p>
+
+
+  <!-- ============================================================== -->
+  <!-- §5 · WHAT THE OPTICAL MENTAL MODEL ENABLES                     -->
+  <!-- ============================================================== -->
+
+  <h2 id="omm-enables">How does the Optical Mental Model accelerate optical design?</h2>
+
+  <p>The results presented here are a first measurement, not a final one. The OMM was built by iterating detectors against a hand-crafted textbook corpus, and the next step is to grow its coverage to commercial-grade lenses, broader system classes (reflective, catadioptric, folded, non-rotationally symmetric), plus human-blind grading by working optical engineers.</p>
+
+  <p>Still, until now, the best use-cases for LLMs in optical design have been writing Zemax macros, API scripts, and refreshing on old textbook optical concepts. Asking an LLM for aberration diagnosis information, let alone design actions, has not been reliable enough to make it worth the effort. But now, the Optical Mental Model offers a verdict reliable enough to use as a real first-pass analysis.</p>
+
+  <p>Practically, the OMM fits in at the moment when an optical engineer would normally sit down with the ray fans, OPD plots, MTF curves, or Seidel coefficients and figure out what's going wrong with their design. <strong>The OMM produces a diagnosis programmatically, grounded in the same reasoning a senior engineer would apply.</strong> It doesn't replace an optical engineer; rather, it adds a new tool to their toolbelt.</p>
+
+
+  <!-- ============================================================== -->
+  <!-- §6 · BUILD THE INFRASTRUCTURE                                  -->
+  <!-- ============================================================== -->
+
+  <h2 id="conclusion">Conclusion and Future Outlook</h2>
+
+  <p>The Optical Mental Model works because the deterministic analysis happens in code, leaving the LLM only the synthesis of that analysis. While I applied this pattern to aberration diagnosis, it generalizes beyond, such that meaningful AI tools for other engineering domains with strong analytical backbones could benefit from a similar approach.</p>
+
+  <p>For optics, aberration identification is only the first piece of the puzzle. Next is the design step itself, where I envision the LLM will be able to seamlessly translate its diagnosis into a targeted merit-function modification.</p>
+
+  <hr class="bio-rule">
+
+  <p class="author-bio"><strong>Adam Mhatre</strong> is a co-founder at Photonium. If you're working on similar problems or want more detail on the methodology behind this experiment, reach out: <a href="mailto:adam@photonium.ai">adam@photonium.ai</a> &middot; <a href="https://www.linkedin.com/in/adam-mhatre/">LinkedIn</a>.</p>
+
+</article>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import type { MDXComponents } from "mdx/types";
 import {
+  Cite,
   Colophon,
   Contact,
   Desc,
@@ -9,12 +10,14 @@ import {
   Item,
   List,
   Masthead,
+  PdfEmbed,
   Section,
 } from "./components/Notebook";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     ...components,
+    Cite,
     Colophon,
     Contact,
     Desc,
@@ -24,6 +27,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Item,
     List,
     Masthead,
+    PdfEmbed,
     Section,
   };
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { EB_Garamond, Inter_Tight, STIX_Two_Text } from "next/font/google";
 import "./globals.css";
 import { SAME_AS, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { Nav } from "@/components/Nav";
+import Masthead from "@/content/masthead.mdx";
 
 const ebGaramond = EB_Garamond({
   subsets: ["latin"],
@@ -30,7 +32,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_NAME,
-    template: `%s — ${SITE_NAME}`,
+    template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   alternates: {
@@ -92,7 +94,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
         />
-        {children}
+        <div className="shell">
+          <aside className="rail">
+            <Masthead />
+            <Nav />
+          </aside>
+          <main className="content">{children}</main>
+        </div>
       </body>
     </html>
   );

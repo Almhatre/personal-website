@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import Link from "next/link";
 
 /* MDX wraps single-block children in <p>. Strip that wrapper when a
  * component renders its children inside a paragraph-ish slot
@@ -13,13 +14,7 @@ function unwrapParagraphs(children: ReactNode): ReactNode {
   });
 }
 
-/* -------- Outer page container -------- */
-
-export function Page({ children }: { children: ReactNode }) {
-  return <main className="page">{children}</main>;
-}
-
-/* -------- Masthead -------- */
+/* -------- Masthead (identity block, lives in the rail) -------- */
 
 export function Masthead({
   name,
@@ -32,7 +27,9 @@ export function Masthead({
 }) {
   return (
     <header className="mast">
-      <h1>{name}</h1>
+      <h1>
+        <Link href="/">{name}</Link>
+      </h1>
       <div className="meta">
         {location && <span>{location}</span>}
         {email && (
@@ -132,6 +129,30 @@ export function Item({
 /* Used inside <Item> for a smaller, secondary description line. */
 export function Desc({ children }: { children: ReactNode }) {
   return <span className="desc">{unwrapParagraphs(children)}</span>;
+}
+
+/* -------- Cite (a formatted citation line, used in publications) -------- */
+
+export function Cite({ children }: { children: ReactNode }) {
+  return <p className="cite">{unwrapParagraphs(children)}</p>;
+}
+
+/* -------- PdfEmbed (in-page PDF reader with download + new-tab links) -------- */
+
+export function PdfEmbed({ src, title }: { src: string; title?: string }) {
+  return (
+    <figure className="pdf-embed">
+      <iframe src={src} title={title ?? "Embedded PDF"} loading="lazy" />
+      <figcaption>
+        <a href={src} target="_blank" rel="noopener noreferrer">
+          Open in new tab
+        </a>
+        <a href={src} download>
+          Download PDF
+        </a>
+      </figcaption>
+    </figure>
+  );
 }
 
 /* -------- Contact (inline list of links) -------- */
